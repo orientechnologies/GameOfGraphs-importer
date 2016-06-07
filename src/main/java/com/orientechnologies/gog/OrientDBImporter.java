@@ -17,13 +17,13 @@
  */
 package com.orientechnologies.gog;
 
+import com.orientechnologies.gog.domain.Element;
 import com.orientechnologies.gog.domain.Relationship;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
-import com.orientechnologies.gog.domain.Element;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * @author Luigi Dell'Aquila
  */
-public class OrientDBImporter {
+public class OrientDBImporter implements DBImporter {
 
   OrientGraph graph;
 
@@ -39,30 +39,16 @@ public class OrientDBImporter {
     graph = new OrientGraph(url, username, password);
   }
 
-  public void close() {
-    graph.shutdown();
-  }
-
-  public OrientGraph getGraph() {
-    return graph;
-  }
-
-  private boolean thereIsEdge(OrientVertex from, OrientVertex to, String edgeClass) {
-    for (Vertex v : from.getVertices(Direction.BOTH, edgeClass)) {
-      if (v.equals(to)) {
-        return true;
+  public void createVertex(Element currentElement) {
+    if (currentElement.name != null && currentElement.category != null && currentElement.category.trim().length() > 0) {
+      OrientVertex v = graph.addVertex("class:" + currentElement.category);
+      v.setProperty("name", currentElement.name);
+      v.setProperty("url", currentElement.getUrl());
+      for (Map.Entry<String, String> entry : currentElement.attributes.entrySet()) {
+        v.setProperty(normalizeAttrName(entry.getKey()), entry.getValue());
       }
+      graph.commit();
     }
-    return false;
-  }
-
-  private OrientVertex loadVertex(String rel) {
-    Iterable<Vertex> matches = graph.getVertices("V.name", rel);
-    Iterator<Vertex> iterator = matches.iterator();
-    if (iterator.hasNext()) {
-      return (OrientVertex) iterator.next();
-    }
-    return null;
   }
 
   public boolean createEdge(Relationship rel, String edgeClass, boolean directionMatters) {
@@ -85,16 +71,30 @@ public class OrientDBImporter {
     return false;
   }
 
-  public void createVertex(Element currentElement) {
-    if (currentElement.name != null && currentElement.category != null && currentElement.category.trim().length() > 0) {
-      OrientVertex v = graph.addVertex("class:" + currentElement.category);
-      v.setProperty("name", currentElement.name);
-      v.setProperty("url", currentElement.getUrl());
-      for (Map.Entry<String, String> entry : currentElement.attributes.entrySet()) {
-        v.setProperty(normalizeAttrName(entry.getKey()), entry.getValue());
+  public OrientGraph getGraph() {
+    return graph;
+  }
+
+  public void close() {
+    graph.shutdown();
+  }
+
+  private boolean thereIsEdge(OrientVertex from, OrientVertex to, String edgeClass) {
+    for (Vertex v : from.getVertices(Direction.BOTH, edgeClass)) {
+      if (v.equals(to)) {
+        return true;
       }
-      graph.commit();
     }
+    return false;
+  }
+
+  private OrientVertex loadVertex(String rel) {
+    Iterable<Vertex> matches = graph.getVertices("V.name", rel);
+    Iterator<Vertex> iterator = matches.iterator();
+    if (iterator.hasNext()) {
+      return (OrientVertex) iterator.next();
+    }
+    return null;
   }
 
   private String normalizeAttrName(String key) {

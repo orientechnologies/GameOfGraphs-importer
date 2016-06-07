@@ -37,11 +37,11 @@ public class GameOfThronesWikiParser extends DefaultHandler {
   private Element currentElement;
   private String  allText;
   private List<Relationship> relationships = new ArrayList<>();
-  private OrientDBImporter orientImporter;
+  private DBImporter dbImporter;
 
 
-  public GameOfThronesWikiParser(OrientDBImporter dbImporter) {
-    this.orientImporter = dbImporter;
+  public GameOfThronesWikiParser(DBImporter dbImporter) {
+    this.dbImporter = dbImporter;
   }
 
   @Override public void startDocument() throws SAXException {
@@ -54,7 +54,7 @@ public class GameOfThronesWikiParser extends DefaultHandler {
         continue;
       }
       boolean directionMatters = directionMatters(edgeClass);
-      if (orientImporter.createEdge(rel, edgeClass, directionMatters)) {
+      if (dbImporter.createEdge(rel, edgeClass, directionMatters)) {
       }
     }
   }
@@ -99,7 +99,7 @@ public class GameOfThronesWikiParser extends DefaultHandler {
   }
 
   private void saveCurrentElement() {
-    orientImporter.createVertex(currentElement);
+    dbImporter.createVertex(currentElement);
     for (Map.Entry<String, List<Relationship>> entry : currentElement.relationships.entrySet()) {
       List<Relationship> relationships = entry.getValue();
       for (Relationship rel : relationships) {
